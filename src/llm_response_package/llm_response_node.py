@@ -24,7 +24,7 @@ class LLMResponseNode(Node):
         self.publisher = self.create_publisher(String, '/target', 10)
         
         # 声明ROS2参数，从配置文件读取
-        self.declare_parameter('api_url', 'http://localhost:8000/v1')
+        self.declare_parameter('api_url', 'http://localhost:8000/v1/chat/completions')
         self.declare_parameter('api_key', '')
         self.declare_parameter('model_name', 'gpt-3.5-turbo')
         self.declare_parameter('max_tokens', 1000)
@@ -247,7 +247,7 @@ class LLMResponseNode(Node):
             
             # 发送请求
             response = requests.post(
-                f"{self.api_url}/chat/completions",
+                f"{self.api_url}",
                 headers=headers,
                 json=data,
                 timeout=self.timeout

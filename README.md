@@ -1,6 +1,6 @@
 # LLM Response ROS2 Package
 
-这是一个ROS2包，用于从终端获取输入文本，调用大语言模型API，并将响应发布到ROS2话题。
+这是一个ROS2包，基于tkinter设计了一个与大模型对话的gui界面，通过api获取大模型的response，并对response进行处理（最好自己改prompt要求大模型输出指定格式），获取response后处理为ros2节点消息并发送出去，该项目仅仅是初步框架，可根据需要进行修改。
 
 ## 功能特性
 

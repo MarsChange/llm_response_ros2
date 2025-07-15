@@ -1,7 +1,7 @@
 llm_response_node:
   ros__parameters:
     # API配置
-    api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     api_key: "your_api_key"  # 如果需要API密钥，请在这里设置
     model_name: "qwen3-235b-a22b"
     
