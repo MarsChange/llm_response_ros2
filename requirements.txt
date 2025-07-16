@@ -1,1 +1,2 @@
 requests>=2.25.0 
+gradio-client>=1.3.0

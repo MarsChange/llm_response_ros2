@@ -11,6 +11,9 @@ import sys
 import os
 import tkinter as tk
 from tkinter import ttk, scrolledtext
+sys.path.append(f'/home/marc/.conda/envs/python310/lib/python3.10/site-packages')
+from gradio_client import Client, handle_file
+from bs4 import BeautifulSoup
 
 class LLMResponseNode(Node):
     """
@@ -31,16 +34,26 @@ class LLMResponseNode(Node):
         self.declare_parameter('temperature', 0.7)
         self.declare_parameter('enable_thinking', False)
         self.declare_parameter('timeout', 30)
+        self.declare_parameter('gradio_ip', 'http://45.76.185.223:5709/')
+        self.declare_parameter('gradio_display_image_path', '')
+        self.declare_parameter('gradio_api_name', '/process_image')
+        self.declare_parameter('system_prompt','')
+        self.declare_parameter('use_gradio', False)
         
         # 获取参数值
+        self.timeout = self.get_parameter('timeout').value
         self.api_url = self.get_parameter('api_url').value
         self.api_key = self.get_parameter('api_key').value
         self.model_name = self.get_parameter('model_name').value
         self.max_tokens = self.get_parameter('max_tokens').value
         self.temperature = self.get_parameter('temperature').value
         self.enable_thinking = self.get_parameter('enable_thinking').value
-        self.timeout = self.get_parameter('timeout').value
-        
+        self.gradio_ip = self.get_parameter('gradio_ip').value
+        self.gradio_display_image_path = self.get_parameter('gradio_display_image_path').value
+        self.gradio_api_name = self.get_parameter('gradio_api_name').value
+        self.use_gradio = self.get_parameter('use_gradio').value
+        self.system_prompt = self.get_parameter('system_prompt').value
+
         self.get_logger().info(f'LLM Response Node 已启动')
         self.get_logger().info(f'API URL: {self.api_url}')
         self.get_logger().info(f'模型: {self.model_name}')
@@ -56,7 +69,7 @@ class LLMResponseNode(Node):
         self.timer = self.create_timer(0.1, self._process_gui_events)
         
         self.running = True
-    
+
     def _setup_chinese_font(self):
         """设置中文字体支持"""
         # 尝试设置中文字体，按优先级排序
@@ -200,7 +213,6 @@ class LLMResponseNode(Node):
         
         self._add_log(f"收到输入: {user_input}")
         self.status_var.set("正在处理...")
-        
         try:
             # 调用大语言模型API
             response = self._call_llm_api(user_input)
@@ -224,46 +236,65 @@ class LLMResponseNode(Node):
             self.publisher.publish(msg)
     
     def _call_llm_api(self, prompt):
+        prompt = self.system_prompt + prompt
         """调用大语言模型API"""
         try:
-            self._add_log(f"正在调用API: {self.api_url}")
-            
-            # 构建请求头
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {self.api_key}'
-            }
-            
-            # 构建请求数据
-            data = {
-                'model': self.model_name,
-                'messages': [
-                    {'role': 'user', 'content': prompt}
-                ],
-                'enable_thinking': self.enable_thinking,
-                'max_tokens': self.max_tokens,
-                'temperature': self.temperature
-            }
-            
-            # 发送请求
-            response = requests.post(
-                f"{self.api_url}",
-                headers=headers,
-                json=data,
-                timeout=self.timeout
-            )
-            
-            self._add_log(f"API响应状态码: {response.status_code}")
-            
-            if response.status_code == 200:
-                result = response.json()
-                response_content = result['choices'][0]['message']['content']
-                self._add_log(f"API调用成功，响应长度: {len(response_content)}")
-                return response_content
+            if self.use_gradio:
+                client = Client(f'{self.gradio_ip}')
+                self._add_log(f"正在调用Gradio API: {self.gradio_ip}")
+                result = client.predict(
+                        message=f'{prompt}',
+                        chat_history=[],
+                        display_image=f'{self.gradio_display_image_path}',
+                        api_name=f'{self.gradio_api_name}',
+                )
+
+                if result != '':
+                    result = [item['content'] for item in result[0]]
+                    soup = BeautifulSoup(result[0], 'html.parser')  # 解析HTML
+                    result = soup.get_text().strip()
+                    result = result.replace("[Thought]:", "").strip()
+                    return result
+                else:
+                    raise Exception(f"API无消息反馈。")
             else:
-                error_detail = response.text if response.text else "无详细信息"
-                raise Exception(f'API请求失败，状态码: {response.status_code}, 详情: {error_detail}')
+                self._add_log(f"正在调用API: {self.api_url}")
+                # 构建请求头
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {self.api_key}'
+                }
                 
+                # 构建请求数据
+                data = {
+                    'model': self.model_name,
+                    'messages': [
+                        {'role': 'user', 'content': prompt}
+                    ],
+                    'enable_thinking': self.enable_thinking,
+                    'max_tokens': self.max_tokens,
+                    'temperature': self.temperature
+                }
+                
+                # 发送请求
+                response = requests.post(
+                    f"{self.api_url}",
+                    headers=headers,
+                    json=data,
+                    timeout=self.timeout
+                )
+                
+                self._add_log(f"API响应状态码: {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    response_content = result['choices'][0]['message']['content']
+                    self._add_log(f"API调用成功，响应长度: {len(response_content)}")
+                    return response_content
+                else:
+                    error_detail = response.text if response.text else "无详细信息"
+                    raise Exception(f'API请求失败，状态码: {response.status_code}, 详情: {error_detail}')
+                    
         except Exception as e:
             raise Exception(f'API调用错误: {str(e)}')
     

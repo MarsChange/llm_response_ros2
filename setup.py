@@ -16,7 +16,7 @@ setup(
         ('share/' + package_name + '/config', glob('config/*')),
         ('share/' + package_name + '/launch', glob('launch/*')),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools','gradio_client'],
     zip_safe=True,
     maintainer='martin chen',
     maintainer_email='marccc@qq.com',
