@@ -1,13 +1,20 @@
 llm_response_node:
   ros__parameters:
-    # API配置
+    use_gradio: false
+
+    system_prompt: ""
+
+    # API配置，适配云服务部署模型
     api_url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-    api_key: "your_api_key"  # 如果需要API密钥，请在这里设置
+    api_key: "your api key"  # 如果需要API密钥，请在这里设置
     model_name: "qwen3-235b-a22b"
-    
     # 请求参数
     max_tokens: 16384
     temperature: 0.7
-    
     # 超时设置
     timeout: 30 
+
+    # 课题组Agent模型Gradio部署方式
+    gradio_ip: "ip address of your gradio app"
+    gradio_display_image_path: ""
+    gradio_api_name: "/process_message"
